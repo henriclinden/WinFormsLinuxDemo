@@ -8,6 +8,10 @@
 
     <!-- Crucial: Re-enable GDI+ on Unix for System.Drawing -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- Suppress platform analyzer warnings for System.Drawing / Fonts -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+    
   </PropertyGroup>
 
   <ItemGroup>
