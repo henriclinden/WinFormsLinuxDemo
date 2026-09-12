@@ -1,0 +1,30 @@
+# Build outputs
+bin/
+obj/
+
+# Visual Studio / .NET
+.vs/
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+*.cache
+*.pdb
+*.log
+*.tmp
+
+# NuGet
+packages/
+*.nupkg
+
+# Test results
+TestResults/
+
+# editor settings
+.vscode/
+
+# Misc
+*.dbmdl
+*.jfm
+*.publish.xml
