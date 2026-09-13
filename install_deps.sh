@@ -7,9 +7,9 @@ apt install -y \
             libx11-dev \
             libxext6 \
             libxrender1 \
-            libxtst6
+            libxtst6 \
+            fonts-liberation
 
 mkdir -p ~/.config/fontconfig
-
 cp fonts.conf ~/.config/fontconfig/fonts.conf
-
+fc-cache -f -v
