@@ -29,6 +29,15 @@ Steps:
          dotnet restore
          dotnet run
 
+## Pre-compile IL with ReadyToRun (R2R)
+
+ReadyToRun (R2R) performs Ahead-Of-Time (AOT) compilation on your IL code at publish time. It generates native machine code alongside the IL inside the binary. The CLR executes the pre-compiled native code instantly at runtime while falling back to IL JIT only if needed.
+
+Publishing with R2R dramatically speeds up UI startup times and control initialization without breaking third-party dependencies
+
+        dotnet publish -c Release -r linux-x64 -p:PublishReadyToRun=true --self-contained true
+        ./bin/Release/net10.0/linux-arm64/WinFormsLinuxDemo
+
 # Troubleshooting Tips
 
 ## Missing Font Rendering #1
