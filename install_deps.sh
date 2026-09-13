@@ -1,6 +1,8 @@
 # for Ubuntu 24.04
 
-apt install -y libgdiplus \
+apt install -y \
+            dotnet-sdk-10.0 \
+            libgdiplus \
             libx11-6 \
             libx11-dev \
             libxext6 \
