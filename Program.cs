@@ -50,6 +50,11 @@ public class ComprehensiveTestForm : Form
         mainTabControl.TabPages.Add(CreateAnimatedGdiLinesTab());
 
         this.Controls.Add(mainTabControl);
+        
+        // Dispose resources on form closing
+        this.FormClosing += (s, e) => {
+            // HMI dashboard resources will be disposed via the tab cleanup
+        };
     }
 
     // --- TAB 1: Basic Input Controls ---
@@ -260,6 +265,15 @@ public class ComprehensiveTestForm : Form
 
         var currentValues = new float[4];
         var startTime = DateTime.UtcNow;
+        
+        // Pre-allocate resources for trend viewer to improve performance
+        var traceArrays = new float[4][];
+        for (int i = 0; i < 4; i++)
+            traceArrays[i] = new float[maxSamples];
+
+        var gridPen = new Pen(Color.FromArgb(55, 80, 110), 1f);
+        var labelBrush = new SolidBrush(Color.White);
+        var trendFont = new Font("Segoe UI", 9F, FontStyle.Bold);
 
         var gaugeRanges = new[]
         {
@@ -369,15 +383,12 @@ public class ComprehensiveTestForm : Form
             g.Clear(trendViewer.BackColor);
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
-            using var gridPen = new Pen(Color.FromArgb(55, 80, 110), 1f);
-            using var labelBrush = new SolidBrush(Color.White);
-            using var font = new Font("Segoe UI", 9F, FontStyle.Bold);
-
             var chartLeft = 32;
             var chartRight = trendViewer.Width - 20;
             var chartTop = 20;
             var chartBottom = trendViewer.Height - 20;
 
+            // Draw grid
             for (var i = 0; i <= 6; i++)
             {
                 var y = chartTop + i * ((chartBottom - chartTop) / 6);
@@ -390,14 +401,22 @@ public class ComprehensiveTestForm : Form
                 g.DrawLine(gridPen, x, chartTop, x, chartBottom);
             }
 
-            DrawTrace(g, sampleQueues[0].ToArray(), Color.Orange, chartLeft, chartRight, chartTop, chartBottom);
-            DrawTrace(g, sampleQueues[1].ToArray(), Color.DeepSkyBlue, chartLeft, chartRight, chartTop, chartBottom);
-            DrawTrace(g, sampleQueues[2].ToArray(), Color.LimeGreen, chartLeft, chartRight, chartTop, chartBottom);
-            DrawTrace(g, sampleQueues[3].ToArray(), Color.Magenta, chartLeft, chartRight, chartTop, chartBottom);
+            // Copy queue data to pre-allocated arrays (single pass instead of multiple ToArray() calls)
+            for (int i = 0; i < 4; i++)
+            {
+                var array = sampleQueues[i].ToArray();
+                Array.Copy(array, traceArrays[i], Math.Min(array.Length, maxSamples));
+            }
 
-            g.DrawString("100", font, labelBrush, new PointF(4f, chartTop - 7f));
-            g.DrawString("0", font, labelBrush, new PointF(14f, chartBottom - 8f));
-            g.DrawString("Last 5 seconds (0.25 Hz, 90° Phase Shift)", font, labelBrush, new PointF(chartLeft, 4f));
+            // Draw traces using pre-allocated arrays
+            DrawTrace(g, traceArrays[0], Color.Orange, chartLeft, chartRight, chartTop, chartBottom);
+            DrawTrace(g, traceArrays[1], Color.DeepSkyBlue, chartLeft, chartRight, chartTop, chartBottom);
+            DrawTrace(g, traceArrays[2], Color.LimeGreen, chartLeft, chartRight, chartTop, chartBottom);
+            DrawTrace(g, traceArrays[3], Color.Magenta, chartLeft, chartRight, chartTop, chartBottom);
+
+            g.DrawString("100", trendFont, labelBrush, new PointF(4f, chartTop - 7f));
+            g.DrawString("0", trendFont, labelBrush, new PointF(14f, chartBottom - 8f));
+            g.DrawString("Last 5 seconds (0.25 Hz, 90° Phase Shift)", trendFont, labelBrush, new PointF(chartLeft, 4f));
         };
 
         var timer = new System.Windows.Forms.Timer { Interval = 50 };
@@ -436,6 +455,15 @@ public class ComprehensiveTestForm : Form
 
         tab.Controls.Add(rootLayout);
         timer.Start();
+        
+        // Cleanup resources when tab is disposed
+        tab.Disposed += (s, e) => {
+            gridPen?.Dispose();
+            labelBrush?.Dispose();
+            trendFont?.Dispose();
+            timer?.Dispose();
+        };
+        
         return tab;
     }
 
