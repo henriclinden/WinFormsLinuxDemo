@@ -397,14 +397,14 @@ public class ComprehensiveTestForm : Form
 
             g.DrawString("100", font, labelBrush, new PointF(4f, chartTop - 7f));
             g.DrawString("0", font, labelBrush, new PointF(14f, chartBottom - 8f));
-            g.DrawString("Last 5 seconds (0.5 Hz, 90° Phase Shift)", font, labelBrush, new PointF(chartLeft, 4f));
+            g.DrawString("Last 5 seconds (0.25 Hz, 90° Phase Shift)", font, labelBrush, new PointF(chartLeft, 4f));
         };
 
         var timer = new System.Windows.Forms.Timer { Interval = 50 };
         timer.Tick += (s, e) =>
         {
             var elapsed = (DateTime.UtcNow - startTime).TotalSeconds;
-            var frequency = 0.5f;
+            var frequency = 0.25f;
             var phases = new[]
             {
                 0.0,
