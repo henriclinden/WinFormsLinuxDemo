@@ -42,11 +42,11 @@ public class ComprehensiveTestForm : Form
         // 2. Tab Control Setup
         mainTabControl = new TabControl { Dock = DockStyle.Fill };
         
+        mainTabControl.TabPages.Add(CreateHmiDashboardTab());
         mainTabControl.TabPages.Add(CreateBasicControlsTab());
         mainTabControl.TabPages.Add(CreateDataAndListsTab());
         mainTabControl.TabPages.Add(CreateDialogsAndMessagesTab());
         mainTabControl.TabPages.Add(CreateCustomDrawingTab());
-        mainTabControl.TabPages.Add(CreateHmiDashboardTab());
         mainTabControl.TabPages.Add(CreateAnimatedGdiLinesTab());
 
         this.Controls.Add(mainTabControl);
@@ -327,7 +327,7 @@ public class ComprehensiveTestForm : Form
             g.DrawString("100", scaleFont, scaleBrush, new PointF(cx + radius * 0.82f, cy + 4f), centerFormat);
 
             // Digital value readout centered below gauge hub
-            var valueRect = new RectangleF(0, cy + 12f, gauge.Width, 26f);
+            var valueRect = new RectangleF(0, cy + 17f, gauge.Width, 26f);
             g.DrawString($"{value:0.0}", valueFont, valueBrush, valueRect, centerFormat);
         }
 
