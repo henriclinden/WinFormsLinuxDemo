@@ -249,7 +249,7 @@ public class ComprehensiveTestForm : Form
         rootLayout.Controls.Add(trendViewer, 0, 1);
         rootLayout.SetColumnSpan(trendViewer, 4);
 
-        var maxSamples = 250;
+        var maxSamples = 100;
         var sampleQueues = new[]
         {
             new Queue<float>(),
@@ -261,26 +261,34 @@ public class ComprehensiveTestForm : Form
         var currentValues = new float[4];
         var startTime = DateTime.UtcNow;
 
-        void DrawGauge(Panel gauge, PaintEventArgs e, float value, string title, Color needleColor)
+        var gaugeRanges = new[]
+        {
+            new { Min = 0f, Max = 100f, Unit = "", Label = "" },
+            new { Min = 0f, Max = 100f, Unit = "", Label = "" },
+            new { Min = 0f, Max = 100f, Unit = "", Label = "" },
+            new { Min = 0f, Max = 100f, Unit = "", Label = "" }
+        };
+
+        void DrawGauge(Panel gauge, PaintEventArgs e, float value, string title, string unit, float min, float max, Color needleColor)
         {
             var g = e.Graphics;
             g.Clear(gauge.BackColor);
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
             var cx = gauge.Width / 2f;
-            var cy = gauge.Height - 26f;
-            var radius = Math.Min(gauge.Width, gauge.Height - 30) * 0.36f;
+            var radius = Math.Min(gauge.Width * 0.38f, gauge.Height * 0.38f);
+            var cy = gauge.Height / 2f + radius * 0.35f;
             const float startAngle = 200f;
             const float sweepAngle = 140f;
 
-            using var arcPen = new Pen(Color.FromArgb(80, 130, 210), 10f);
+            using var arcPen = new Pen(Color.FromArgb(80, 130, 210), 8f);
             using var tickPen = new Pen(Color.FromArgb(220, 220, 220), 1.5f);
-            using var needlePen = new Pen(needleColor, 4f);
+            using var needlePen = new Pen(needleColor, 3.5f);
             using var centerBrush = new SolidBrush(Color.FromArgb(30, 40, 52));
-            using var titleBrush = new SolidBrush(Color.Silver);
+            using var scaleBrush = new SolidBrush(Color.FromArgb(180, 190, 205));
             using var valueBrush = new SolidBrush(Color.White);
-            using var titleFont = new Font("Segoe UI", 12F, FontStyle.Bold);
-            using var valueFont = new Font("Segoe UI", 18F, FontStyle.Bold);
+            using var scaleFont = new Font("Segoe UI", 9F, FontStyle.Bold);
+            using var valueFont = new Font("Segoe UI", 16F, FontStyle.Bold);
 
             var arcRect = new RectangleF(cx - radius, cy - radius, radius * 2f, radius * 2f);
             g.DrawArc(arcPen, arcRect, startAngle, sweepAngle);
@@ -289,7 +297,7 @@ public class ComprehensiveTestForm : Form
             {
                 var t = i / 10f;
                 var angle = (startAngle + t * sweepAngle) * Math.PI / 180.0;
-                var inner = radius - 12f;
+                var inner = (i % 5 == 0) ? radius - 10f : radius - 6f;
                 var outer = radius + 2f;
                 var x1 = (float)(cx + inner * Math.Cos(angle));
                 var y1 = (float)(cy + inner * Math.Sin(angle));
@@ -298,30 +306,36 @@ public class ComprehensiveTestForm : Form
                 g.DrawLine(tickPen, x1, y1, x2, y2);
             }
 
-            var ratio = Math.Clamp((value + 1f) / 2f, 0f, 1f);
+            var ratio = Math.Clamp((value - min) / (max - min), 0f, 1f);
             var needleAngle = (startAngle + ratio * sweepAngle) * Math.PI / 180.0;
-            var needleLength = radius - 18f;
+            var needleLength = radius - 12f;
             var needleX = (float)(cx + needleLength * Math.Cos(needleAngle));
             var needleY = (float)(cy + needleLength * Math.Sin(needleAngle));
             g.DrawLine(needlePen, cx, cy, needleX, needleY);
 
-            g.FillEllipse(centerBrush, cx - 18, cy - 18, 36, 36);
-            g.DrawEllipse(new Pen(Color.FromArgb(170, 170, 170), 2f), cx - 18, cy - 18, 36, 36);
+            g.FillEllipse(centerBrush, cx - 12, cy - 12, 24, 24);
+            g.DrawEllipse(new Pen(Color.FromArgb(170, 170, 170), 2f), cx - 12, cy - 12, 24, 24);
 
-            g.DrawString(title, titleFont, titleBrush, new PointF(cx - 18f, 12f));
+            using var centerFormat = new StringFormat
+            {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center
+            };
 
-            using var format = new StringFormat { Alignment = StringAlignment.Center };
-            var valueRect = new RectangleF(0, gauge.Height - 42, gauge.Width, 28);
-            g.DrawString($"{value:0.0}", valueFont, valueBrush, valueRect, format);
+            // 0 and 100 scale labels
+            g.DrawString("0", scaleFont, scaleBrush, new PointF(cx - radius * 0.82f, cy + 4f), centerFormat);
+            g.DrawString("100", scaleFont, scaleBrush, new PointF(cx + radius * 0.82f, cy + 4f), centerFormat);
 
-            g.DrawString("-1", titleFont, titleBrush, new PointF(cx - radius, cy + 12f));
-            g.DrawString("1", titleFont, titleBrush, new PointF(cx + radius - 12f, cy + 12f));
+            // Digital value readout centered below gauge hub
+            var valueRect = new RectangleF(0, cy + 12f, gauge.Width, 26f);
+            g.DrawString($"{value:0.0}", valueFont, valueBrush, valueRect, centerFormat);
         }
 
         for (var i = 0; i < gaugePanels.Length; i++)
         {
             var index = i;
-            gaugePanels[i].Paint += (s, e) => DrawGauge(gaugePanels[index], e, currentValues[index], $"CH{index + 1}", index switch
+            var range = gaugeRanges[i];
+            gaugePanels[i].Paint += (s, e) => DrawGauge(gaugePanels[index], e, currentValues[index], range.Label, range.Unit, range.Min, range.Max, index switch
             {
                 0 => Color.Orange,
                 1 => Color.DeepSkyBlue,
@@ -338,12 +352,13 @@ public class ComprehensiveTestForm : Form
             }
 
             using var pen = new Pen(color, 2f);
+            var span = Math.Max(1, maxSamples - 1);
             for (var i = 1; i < values.Length; i++)
             {
-                var x1 = left + ((i - 1) * (right - left)) / Math.Max(1, values.Length - 1);
-                var y1 = bottom - ((values[i - 1] + 1f) / 2f) * (bottom - top);
-                var x2 = left + (i * (right - left)) / Math.Max(1, values.Length - 1);
-                var y2 = bottom - ((values[i] + 1f) / 2f) * (bottom - top);
+                var x1 = left + ((i - 1) * (right - left)) / span;
+                var y1 = bottom - (Math.Clamp(values[i - 1], 0f, 100f) / 100f) * (bottom - top);
+                var x2 = left + (i * (right - left)) / span;
+                var y2 = bottom - (Math.Clamp(values[i], 0f, 100f) / 100f) * (bottom - top);
                 g.DrawLine(pen, x1, y1, x2, y2);
             }
         }
@@ -358,30 +373,38 @@ public class ComprehensiveTestForm : Form
             using var labelBrush = new SolidBrush(Color.White);
             using var font = new Font("Segoe UI", 9F, FontStyle.Bold);
 
+            var chartLeft = 32;
+            var chartRight = trendViewer.Width - 20;
+            var chartTop = 20;
+            var chartBottom = trendViewer.Height - 20;
+
             for (var i = 0; i <= 6; i++)
             {
-                var y = 20 + i * ((trendViewer.Height - 40) / 6);
-                g.DrawLine(gridPen, 20, y, trendViewer.Width - 20, y);
+                var y = chartTop + i * ((chartBottom - chartTop) / 6);
+                g.DrawLine(gridPen, chartLeft, y, chartRight, y);
             }
 
             for (var i = 0; i <= 8; i++)
             {
-                var x = 20 + i * ((trendViewer.Width - 40) / 8);
-                g.DrawLine(gridPen, x, 20, x, trendViewer.Height - 20);
+                var x = chartLeft + i * ((chartRight - chartLeft) / 8);
+                g.DrawLine(gridPen, x, chartTop, x, chartBottom);
             }
 
-            DrawTrace(g, sampleQueues[0].ToArray(), Color.Orange, 20, trendViewer.Width - 20, 20, trendViewer.Height - 20);
-            DrawTrace(g, sampleQueues[1].ToArray(), Color.DeepSkyBlue, 20, trendViewer.Width - 20, 20, trendViewer.Height - 20);
-            DrawTrace(g, sampleQueues[2].ToArray(), Color.LimeGreen, 20, trendViewer.Width - 20, 20, trendViewer.Height - 20);
-            DrawTrace(g, sampleQueues[3].ToArray(), Color.Magenta, 20, trendViewer.Width - 20, 20, trendViewer.Height - 20);
+            DrawTrace(g, sampleQueues[0].ToArray(), Color.Orange, chartLeft, chartRight, chartTop, chartBottom);
+            DrawTrace(g, sampleQueues[1].ToArray(), Color.DeepSkyBlue, chartLeft, chartRight, chartTop, chartBottom);
+            DrawTrace(g, sampleQueues[2].ToArray(), Color.LimeGreen, chartLeft, chartRight, chartTop, chartBottom);
+            DrawTrace(g, sampleQueues[3].ToArray(), Color.Magenta, chartLeft, chartRight, chartTop, chartBottom);
 
-            g.DrawString("Last 5 seconds", font, labelBrush, new PointF(22f, 4f));
+            g.DrawString("100", font, labelBrush, new PointF(4f, chartTop - 7f));
+            g.DrawString("0", font, labelBrush, new PointF(14f, chartBottom - 8f));
+            g.DrawString("Last 5 seconds (0.5 Hz, 90° Phase Shift)", font, labelBrush, new PointF(chartLeft, 4f));
         };
 
-        var timer = new System.Windows.Forms.Timer { Interval = 40 };
+        var timer = new System.Windows.Forms.Timer { Interval = 50 };
         timer.Tick += (s, e) =>
         {
             var elapsed = (DateTime.UtcNow - startTime).TotalSeconds;
+            var frequency = 0.5f;
             var phases = new[]
             {
                 0.0,
@@ -390,9 +413,15 @@ public class ComprehensiveTestForm : Form
                 3.0 * Math.PI / 2.0
             };
 
+            var signalBases = new[] { 50f, 50f, 50f, 50f };
+            var signalAmplitudes = new[] { 35f, 35f, 35f, 35f };
+
             for (var i = 0; i < 4; i++)
             {
-                currentValues[i] = (float)Math.Sin(2.0 * Math.PI * 1.0 * elapsed + phases[i]);
+                var angle = 2.0 * Math.PI * frequency * elapsed + phases[i];
+                currentValues[i] = signalBases[i] + signalAmplitudes[i] * (float)Math.Sin(angle);
+                currentValues[i] = Math.Clamp(currentValues[i], gaugeRanges[i].Min, gaugeRanges[i].Max);
+
                 sampleQueues[i].Enqueue(currentValues[i]);
                 while (sampleQueues[i].Count > maxSamples)
                 {
