@@ -1,3 +1,11 @@
+# WinForms Linux Demo
+
+## Introduction
+
+This project is a demonstration of running a Windows Forms (WinForms) application on Linux under .NET with Mono/GDI+ support (`libgdiplus`). It showcases desktop UI capabilities, standard controls, dialogs, custom GDI+ drawing, and a real-time industrial-style Signal HMI dashboard featuring analog gauges and multi-channel trend viewers.
+
+While the setup steps below focus on Ubuntu 24.04 as an example, this application works across many types of Linux environments, including various embedded Linux distributions (such as Yocto-, Buildroot-, or Debian-based systems on ARM/x86 hardware) provided that .NET runtime, X11/Wayland-XWayland, and `libgdiplus` are available.
+
 # Getting Started on Ubuntu 24.04
 
 Steps:
