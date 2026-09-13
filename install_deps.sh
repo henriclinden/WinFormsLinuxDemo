@@ -8,3 +8,8 @@ apt install -y \
             libxext6 \
             libxrender1 \
             libxtst6
+
+mkdir -p ~/.config/fontconfig
+
+cp fonts.conf ~/.config/fontconfig/fonts.conf
+

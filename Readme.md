@@ -1,37 +1,97 @@
-# Getting Started
+# Getting Started on Ubuntu 24.04
 
 Steps:
 
- - Install dotnet 8 or 10.
- - Then install X11 dependencies.
+- Install .NET 10.
 
-         sudo apt install -y libgdiplus \
+        sudo apt install -y dotnet-sdk-10.0
+
+- Install the X11 dependencies:
+
+        sudo apt install -y libgdiplus \
             libx11-6 \
             libx11-dev \
             libxext6 \
             libxrender1 \
             libxtst6
 
-    or (simpler)
+- Enable X11 support in Wayland.
+- Clone the project and build.
 
-         sudo apt install -y libgdiplus libc6-dev
-
- - Enable X11 support in Wayland
- - Create project
-
-         dotnet new console -n WinFormsLinuxDemo
-
- - Add WinForms
-
-         dotnet add package Core.System.Windows.Forms
-
-
+         dotnet restore
+         dotnet run
 
 # Troubleshooting Tips
-Missing Font Rendering: If text appears incorrectly or crashes, install Microsoft core fonts on Ubuntu:
+
+## Missing Font Rendering #1
+No text in standard buttons or message boxes
+
+This is caused by a font scaling problem. On many Linux systems, the default Microsoft fonts are aliased to Noto Sans. This is a great font, but it has scaling problems when used together with Mono.
+
+Install the Liberation Sans font package and create aliases for the fonts used by Mono.
+
+Create the font configuration file and edit:
+
+                mkdir -p ~/.config/fontconfig
+                vim ~/.config/fontconfig/fonts.conf
+
+Paste the XML block below into the file. In this example, "System" and "Microsoft Sans Serif" are aliased to Liberation Sans, while "MS Sans Serif" is aliased to Ubuntu. You can replace the names inside the <string> tags under <edit> with any font currently shown in your fc-list.
+
+                <?xml version="1.0"?>
+                <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+                <fontconfig>
+
+                <!-- Map "System" font to Liberation Sans -->
+                <match target="pattern">
+                        <test name="family" qual="any">
+                        <string>System</string>
+                        </test>
+                        <edit name="family" mode="assign" binding="strong">
+                        <string>Liberation Sans</string>
+                        </edit>
+                </match>
+
+                <!-- Map Windows "Microsoft Sans Serif" to Liberation Sans -->
+                <match target="pattern">
+                        <test name="family" qual="any">
+                        <string>Microsoft Sans Serif</string>
+                        </test>
+                        <edit name="family" mode="assign" binding="strong">
+                        <string>Liberation Sans</string>
+                        </edit>
+                </match>
+
+                <!-- Map Windows "MS Sans Serif" (or "San Serif") to Ubuntu font -->
+                <match target="pattern">
+                        <test name="family" qual="any">
+                        <string>MS Sans Serif</string>
+                        </test>
+                        <edit name="family" mode="assign" binding="strong">
+                        <string>Ubuntu</string>
+                        </edit>
+                </match>
+
+                </fontconfig>
+
+Rebuild the font configuration cache:
+
+                fc-cache -f -v
+
+Check that the Microsoft fonts are now aliased to Liberation Sans and not Noto Sans:
+
+                fc-match System
+                LiberationSans-Regular.ttf: "Liberation Sans" "Regular"
+
+                fc-match "Microsoft Sans Serif"
+                LiberationSans-Regular.ttf: "Liberation Sans" "Regular"
+
+## Missing Font Rendering #2
+If text appears incorrectly or the application crashes, install the Microsoft Core Fonts on Ubuntu:
 
     sudo apt install -y ttf-mscorefonts-installer
     sudo fc-cache -f -v
 
-GDI Exception: If you encounter TypeInitializationException involving System.Drawing, double-check that libgdiplus is installed and the <RuntimeHostConfigurationOption Include="System.Drawing.EnableUnixSupport" Value="true"/> entry is present in your .csproj.
+GDI Exception: If you encounter a TypeInitializationException involving System.Drawing, double-check that libgdiplus is installed and that the following entry is present in your .csproj:
+
+                <RuntimeHostConfigurationOption Include="System.Drawing.EnableUnixSupport" Value="true"/>
 
